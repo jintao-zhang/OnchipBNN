@@ -1,3 +1,7 @@
+# This code is mostly based on Matthieu Courbariaux's
+# Binary Neural Network code, accessable from: 
+# https://github.com/MatthieuCourbariaux/BinaryNet
+# Jintao has modify the code so it is able to implemented on-chip.
 
 import time
 import os
@@ -38,9 +42,6 @@ round3 = Elemwise(round3_scalar)
 
 def hard_sigmoid(x):
     return T.clip((x+1.)/2.,0,1)
-	# JZ: hard sigmoid has the input range (-1, 1) and has the output range of (0, 1)
-	# but hard sigmoid function does NOT Binarize. 
-	# Binarization done by the function round3
 
 # The neurons' activations binarization function
 # It behaves like the sign function during forward propagation
@@ -49,6 +50,8 @@ def hard_sigmoid(x):
 # during back propagation
 def binary_tanh_unit(x):
 	#return 2.*round3(hard_sigmoid(x))-1.
+	# change the binary_tanh_unit so that the output is 0, 1, 
+	# instead of -1, 1
     return round3(hard_sigmoid(x))
 
 def binary_sigmoid_unit(x):
@@ -269,12 +272,13 @@ def train(train_fn, interm_fn, val_fn,
         batches = len(X)/batch_size
         
         for i in range(batches):
-		# JZ : need to replace this fwd pass func
+		# Jintao : need to replace this fwd pass func
             loss += train_fn(X[i*batch_size:(i+1)*batch_size],y[i*batch_size:(i+1)*batch_size],LR)
             Out1, Out2, Out3 = interm_fn(X[i*batch_size:(i+1)*batch_size])
             #Output3 = _shared(Out3)
             #loss += update_fn(Output3, y[i*batch_size:(i+1)*batch_size], LR)
 			
+			#Jintao: save the parameter/outputs for EACH batch
             if save_path is not None:
                 os.chdir(save_path)
                 save_name_param="batch_%d_param_bin.npy" % i

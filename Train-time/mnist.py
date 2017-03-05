@@ -1,3 +1,7 @@
+# This code is mostly based on Matthieu Courbariaux's
+# Binary Neural Network code, accessable from: 
+# https://github.com/MatthieuCourbariaux/BinaryNet
+# Jintao has modify the code so it is able to implemented on-chip.
 
 from __future__ import print_function
 
@@ -28,17 +32,8 @@ from pylearn2.utils import serial
 from collections import OrderedDict
 
 def quantization (array,num_bits):# DAC Quantization
-
-    #n_bits = num_bits
-    #f = (1 << n_bits)
-    #a = np.linspace(0, np.max(array), np.size(array))
-    #a_fix = np.ceil(a*f)*(1.0/f)   
-
-    #return a_fix
-  
-    #max_num = np.max(array)
-    #min_num = np.min(array)
-    
+	# This quantization will limit input array in range [0, 1)
+	
     max_num = 1.0 - 0.5**num_bits 
     min_num = 0
     num_levels = (2. ** num_bits)
@@ -70,19 +65,19 @@ if __name__ == "__main__":
     print("epsilon = "+str(epsilon))
     
     # MLP parameters
-    num_units = 4096 # was 4096
+    num_units = 96 # Jintao: was 4096
     print("num_units = "+str(num_units))
-    n_hidden_layers = 3
+    n_hidden_layers = 3 # was 3
     print("n_hidden_layers = "+str(n_hidden_layers))
     
     # Training parameters
-    num_epochs = 100
+    num_epochs = 100 # was 1000
     print("num_epochs = "+str(num_epochs))
     
     # Dropout parameters
-    dropout_in = 0. # 0. means no dropout, JZ: was .2
+    dropout_in = 0. # 0. means no dropout, Jintao: was .2
     print("dropout_in = "+str(dropout_in))
-    dropout_hidden = 0. # JZ : was .5
+    dropout_hidden = 0. # Jintao : was .5
     print("dropout_hidden = "+str(dropout_hidden))
     
     # BinaryOut
@@ -90,13 +85,11 @@ if __name__ == "__main__":
     print("activation = binary_net.binary_tanh_unit")
     # activation = binary_net.binary_sigmoid_unit
     # print("activation = binary_net.binary_sigmoid_unit")
-	# attmpt this..
-    # activation = binary_net.binary_linear_unit
-    # print("activation = binary_net.binary_linear_unit")
 	
     # BinaryConnect
     binary = True
     print("binary = "+str(binary))
+    # for hardware purpose, we cannot implement sthchastic. But deterministic works just well - Jintao
     stochastic = False
     print("stochastic = "+str(stochastic))
     # (-H,+H) are the two binary values
@@ -133,8 +126,8 @@ if __name__ == "__main__":
     # bc01 format    
     # Inputs in the range [-1,+1]
     # print("Inputs in the range [-1,+1]")
-	# JZ make input also from 0 to 1
-	# JZ change size
+	# Jintao make input from 0 to 1
+	# Jintao change size to 10*10 (100) to fit in chip.
     #train_set.X = 2* train_set.X.reshape(-1, 1, 28, 28) - 1.
     #valid_set.X = 2* valid_set.X.reshape(-1, 1, 28, 28) - 1.
     #test_set.X = 2* test_set.X.reshape(-1, 1, 28, 28) - 1.
@@ -167,7 +160,7 @@ if __name__ == "__main__":
     target = T.matrix('targets')
     LR = T.scalar('LR', dtype=theano.config.floatX)
 
-	# JZ Input Layer dimension change
+	# Jintao: Input Layer dimension change
     #mlp = lasagne.layers.InputLayer(
     #        shape=(None, 1, 10, 10),
 			#shape=(None, 1, 28, 28), 
@@ -179,7 +172,7 @@ if __name__ == "__main__":
     
     l1_in = lasagne.layers.InputLayer(shape=(None, 1, 10, 10)
 		, input_var=input)
-	
+	#Jintao: tear-up the layers to get binarized weight/ output for testing. 
     l1_dl = binary_net.DenseLayer(l1_in,
 		binary=binary,
 		stochastic=stochastic,
@@ -271,10 +264,6 @@ if __name__ == "__main__":
             epsilon=epsilon, 
             alpha=alpha)
     
-    #io      = lasagne.layers.get_output(input_layer, deterministic=False)		
-    #output1 = lasagne.layers.get_output(l1, deterministic=False)
-    #output2 = lasagne.layers.get_output(l2, deterministic=False)
-    #output3 = lasagne.layers.get_output(l3, deterministic=False)
     train_output = lasagne.layers.get_output(mlp, deterministic=False)
     
     # squared hinge loss
@@ -309,7 +298,6 @@ if __name__ == "__main__":
  
     get_intermediate_activation = theano.function([input], [Output1, Output2, Output3])
     Outputs1, Outputs2, Outputs3 = get_intermediate_activation(test_set.X)
-    
 	
     # Compile a second function computing the validation loss and accuracy:
     val_fn = theano.function([input, target], [test_loss, test_err])
@@ -330,7 +318,6 @@ if __name__ == "__main__":
             save_path,
             shuffle_parts)
 			
-#str_filename = strftime("%m-%d-%H:%M:%S", gmtime)
 filename = "mnist_"
 #os.mkdir(filename)
 #os.chdir(filename)
