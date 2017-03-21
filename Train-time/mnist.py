@@ -8,7 +8,6 @@ from __future__ import print_function
 import sys
 import os
 import time
-import pdb
 import numpy as np
 np.random.seed(1234)  # for reproducibility
 
@@ -30,6 +29,10 @@ from pylearn2.datasets.mnist import MNIST
 from pylearn2.utils import serial
 
 from collections import OrderedDict
+
+import pdb
+theano.config.compute_test_value = 'warn'  # 'off' # Use 'warn' to activate this feature
+
 
 def quantization (array,num_bits):# DAC Quantization
 	# This quantization will limit input array in range [0, 1)
@@ -156,10 +159,14 @@ if __name__ == "__main__":
     
     # Prepare Theano variables for inputs and targets
     input = T.tensor4('inputs')
-    chip_input = T.tensor4('chip_inputs')
-    target = T.matrix('targets')
-    LR = T.scalar('LR', dtype=theano.config.floatX)
+    input.tag.test_value = np.random.randn(3, 1, 10, 10)
 
+    chip_input = T.tensor4('chip_inputs')
+    chip_input.tag.test_value = np.random.randn(3, 1, 10, 10)
+    target = T.matrix('targets')
+    target.tag.test_value = np.asarray([9, 0, 4])
+    LR = T.scalar('LR', dtype=theano.config.floatX)
+    LR.tag.test_value = 0.001
 	# Jintao: Input Layer dimension change
     #mlp = lasagne.layers.InputLayer(
     #        shape=(None, 1, 10, 10),
@@ -223,6 +230,10 @@ if __name__ == "__main__":
     
     #l4 = lasagne.layers.InjectionLayer(l3_nl, filename="inputs/test.txt")
     lchip = lasagne.layers.InputLayer(shape=(None, 1, batch_size, num_units), input_var = chip_input)
+
+    pdb.set_trace()
+
+
     l4 = lasagne.layers.ElemwiseMergeLayer([l3_nl, lchip], T.sub)
     #pdb.set_trace()
     #for k in range(n_hidden_layers):
@@ -251,7 +262,7 @@ if __name__ == "__main__":
     
     mlp = binary_net.DenseLayer(
                 #mlp,
-				l4,
+	        l4,
                 binary=binary,
                 stochastic=stochastic,
                 H=H,
@@ -264,7 +275,7 @@ if __name__ == "__main__":
             epsilon=epsilon, 
             alpha=alpha)
     
-	#When training, use stochastic approach
+    # When training, use stochastic approach
     train_output = lasagne.layers.get_output(mlp, deterministic=False)
     
     # squared hinge loss
