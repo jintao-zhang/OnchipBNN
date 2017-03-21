@@ -272,29 +272,36 @@ def train(train_fn, interm_fn, val_fn,
         batches = len(X)/batch_size
         
         for i in range(batches):
-		# Jintao : need to replace this fwd pass func
-            loss += train_fn(X[i*batch_size:(i+1)*batch_size],y[i*batch_size:(i+1)*batch_size],LR)
+		# Jintao : inject function
             Out1, Out2, Out3 = interm_fn(X[i*batch_size:(i+1)*batch_size])
-            #Output3 = _shared(Out3)
-            #loss += update_fn(Output3, y[i*batch_size:(i+1)*batch_size], LR)
+            save_name_out3 = "inputs/test.txt"
+            np.savetxt(save_name_out3, Out3, delimiter="\n")
+			# read back in
+            # pause to let external file changes..
+            ideal_out = Out3			
+            #ideal_out = np.loadtxt(save_name_out2) WRITEME
 			
 			#Jintao: save the parameter/outputs for EACH batch
             if save_path is not None:
+                Out1, Out2, Out3 = interm_fn(X[i*batch_size:(i+1)*batch_size])
                 os.chdir(save_path)
-                save_name_param="batch_%d_param_bin.npy" % i
+                #save_name_param="batch_%d_param_bin.npy" % i
                 save_name_out1="batch_%d_output_1.npy" % i
                 save_name_out2="batch_%d_output_2.npy" % i
+                #save_name_out2 = "../inputs/test.txt"
                 save_name_out3="batch_%d_output_3.npy" % i
             #    print(save_name_param)
             #    print(save_name_out1, save_name_out2, save_name_out3)
                 #save_name_outputs="epoch_%d_out.npy" % epoch
-                Params_bin = lasagne.layers.get_all_params(model, binary=True)
-            #    np.save(save_name_out3, Out3)
-            #    np.save(save_name_out2, Out2)
-            #    np.save(save_name_out1, Out1)
+                #Params_bin = lasagne.layers.get_all_params(model, binary=True)
+                np.save(save_name_out3, Out3)
+                #np.save(save_name_out2, Out2)
+                #np.save(save_name_out1, Out1)
             #    np.save(save_name_param, Params_bin)
                 os.chdir("..")
-			
+            #loss += train_fn(X[i*batch_size:(i+1)*batch_size], [ideal_out] ,y[i*batch_size:(i+1)*batch_size],LR)
+            loss += train_fn(X[i*batch_size:(i+1)*batch_size] ,y[i*batch_size:(i+1)*batch_size],LR)
+
         loss/=batches
         
         return loss

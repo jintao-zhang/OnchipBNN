@@ -8,7 +8,7 @@ from __future__ import print_function
 import sys
 import os
 import time
-
+import pdb
 import numpy as np
 np.random.seed(1234)  # for reproducibility
 
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     print("n_hidden_layers = "+str(n_hidden_layers))
     
     # Training parameters
-    num_epochs = 100 # was 1000
+    num_epochs = 2 # was 1000
     print("num_epochs = "+str(num_epochs))
     
     # Dropout parameters
@@ -89,7 +89,6 @@ if __name__ == "__main__":
     # BinaryConnect
     binary = True
     print("binary = "+str(binary))
-    # for hardware purpose, we cannot implement sthchastic. But deterministic works just well - Jintao
     stochastic = False
     print("stochastic = "+str(stochastic))
     # (-H,+H) are the two binary values
@@ -110,8 +109,8 @@ if __name__ == "__main__":
     # BTW, LR decay might good for the BN moving average...
     
     #save_path = "mnist_parameters.npz"
-    #save_path = "mnist_"
-    save_path = None
+    save_path = "mnist_"
+    #save_path = None
     print("save_path = "+str(save_path))
     
     shuffle_parts = 1
@@ -157,6 +156,7 @@ if __name__ == "__main__":
     
     # Prepare Theano variables for inputs and targets
     input = T.tensor4('inputs')
+    chip_input = T.tensor4('chip_inputs')
     target = T.matrix('targets')
     LR = T.scalar('LR', dtype=theano.config.floatX)
 
@@ -221,10 +221,10 @@ if __name__ == "__main__":
     # attempt to add in an additional layer to inject numbers
     # assume activation = 0
     
-    #l4 = lasagne.layers.BatchNormLayer(l3_bn, beta=None,
-    #gamma = None,
-    #epsilon = epsilon, alpha = alpha)
-	
+    #l4 = lasagne.layers.InjectionLayer(l3_nl, filename="inputs/test.txt")
+    lchip = lasagne.layers.InputLayer(shape=(None, 1, batch_size, num_units), input_var = chip_input)
+    l4 = lasagne.layers.ElemwiseMergeLayer([l3_nl, lchip], T.sub)
+    #pdb.set_trace()
     #for k in range(n_hidden_layers):
 
         #mlp = binary_net.DenseLayer(
@@ -251,7 +251,7 @@ if __name__ == "__main__":
     
     mlp = binary_net.DenseLayer(
                 #mlp,
-				l3_bn,
+				l4,
                 binary=binary,
                 stochastic=stochastic,
                 H=H,
@@ -264,6 +264,7 @@ if __name__ == "__main__":
             epsilon=epsilon, 
             alpha=alpha)
     
+	#When training, use stochastic approach
     train_output = lasagne.layers.get_output(mlp, deterministic=False)
     
     # squared hinge loss
@@ -291,13 +292,14 @@ if __name__ == "__main__":
     
     # Compile a function performing a training step on a mini-batch (by giving the updates dictionary) 
     # and returning the corresponding training loss:
-    train_fn = theano.function([input, target, LR], loss, updates=updates)
-    Output1 = lasagne.layers.get_output(l3_bn, deterministic=True)
-    Output2 = lasagne.layers.get_output(l3_nl, deterministic=True)
-    Output3 = lasagne.layers.get_output(l3_dl, deterministic=True)
+    #train_fn = theano.function([input, target, LR], loss, updates=updates)
+    train_fn = theano.function([input, chip_input, target, LR], loss, updates=updates)
+    Output1 = lasagne.layers.get_output(l1_nl, deterministic=False)
+    Output2 = lasagne.layers.get_output(l2_nl, deterministic=False)
+    Output3 = lasagne.layers.get_output(l3_nl, deterministic=False)
  
     get_intermediate_activation = theano.function([input], [Output1, Output2, Output3])
-    Outputs1, Outputs2, Outputs3 = get_intermediate_activation(test_set.X)
+    #Outputs1, Outputs2, Outputs3 = get_intermediate_activation(test_set.X)
 	
     # Compile a second function computing the validation loss and accuracy:
     val_fn = theano.function([input, target], [test_loss, test_err])
