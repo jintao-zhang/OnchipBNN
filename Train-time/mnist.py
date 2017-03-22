@@ -8,10 +8,7 @@ from __future__ import print_function
 import sys
 import os
 import time
-<<<<<<< HEAD
 
-=======
->>>>>>> origin/merging_approach
 import numpy as np
 np.random.seed(1234)  # for reproducibility
 
@@ -33,8 +30,6 @@ from pylearn2.datasets.mnist import MNIST
 from pylearn2.utils import serial
 
 from collections import OrderedDict
-import pdb
-theano.config.compute_test_value = 'warn'  # 'off' # Use 'warn' to activate this feature
 
 import pdb
 theano.config.compute_test_value = 'warn'  # 'off' # Use 'warn' to activate this feature
@@ -165,7 +160,6 @@ if __name__ == "__main__":
     
     # Prepare Theano variables for inputs and targets
     input = T.tensor4('inputs')
-<<<<<<< HEAD
     #input.tag.test_value = np.random.randn(3, 1, 10, 10).astype('float32')
     
     chip_input = T.matrix('chip_inputs')
@@ -176,16 +170,6 @@ if __name__ == "__main__":
     
     LR = T.scalar('LR', dtype=theano.config.floatX)
     #LR.tag.test_value = 0.001
-=======
-    input.tag.test_value = np.random.randn(3, 1, 10, 10)
-
-    chip_input = T.tensor4('chip_inputs')
-    chip_input.tag.test_value = np.random.randn(3, 1, 10, 10)
-    target = T.matrix('targets')
-    target.tag.test_value = np.asarray([9, 0, 4])
-    LR = T.scalar('LR', dtype=theano.config.floatX)
-    LR.tag.test_value = 0.001
->>>>>>> origin/merging_approach
 	# Jintao: Input Layer dimension change
     #mlp = lasagne.layers.InputLayer(
     #        shape=(None, 1, 10, 10),
@@ -248,15 +232,8 @@ if __name__ == "__main__":
     # assume activation = 0
     
     #l4 = lasagne.layers.InjectionLayer(l3_nl, filename="inputs/test.txt")
-<<<<<<< HEAD
+
     lchip = lasagne.layers.InputLayer(shape=(None, num_units), input_var = chip_input)
-=======
-    lchip = lasagne.layers.InputLayer(shape=(None, 1, batch_size, num_units), input_var = chip_input)
-
-    pdb.set_trace()
-
-
->>>>>>> origin/merging_approach
     l4 = lasagne.layers.ElemwiseMergeLayer([l3_nl, lchip], T.sub)
     #pdb.set_trace()
     #for k in range(n_hidden_layers):
@@ -285,7 +262,7 @@ if __name__ == "__main__":
     
     mlp = binary_net.DenseLayer(
                 #mlp,
-	        l4,
+                l4,
                 binary=binary,
                 stochastic=stochastic,
                 H=H,
