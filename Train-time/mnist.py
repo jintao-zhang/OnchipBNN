@@ -8,7 +8,7 @@ from __future__ import print_function
 import sys
 import os
 import time
-import pdb
+
 import numpy as np
 np.random.seed(1234)  # for reproducibility
 
@@ -30,6 +30,8 @@ from pylearn2.datasets.mnist import MNIST
 from pylearn2.utils import serial
 
 from collections import OrderedDict
+import pdb
+theano.config.compute_test_value = 'warn'  # 'off' # Use 'warn' to activate this feature
 
 def quantization (array,num_bits):# DAC Quantization
 	# This quantization will limit input array in range [0, 1)
