@@ -30,10 +30,8 @@ from pylearn2.datasets.mnist import MNIST
 from pylearn2.utils import serial
 
 from collections import OrderedDict
-
 import pdb
-theano.config.compute_test_value = 'warn'  # 'off' # Use 'warn' to activate this feature
-
+#theano.config.compute_test_value = 'warn'  # 'off' # Use 'warn' to activate this feature
 
 def quantization (array,num_bits):# DAC Quantization
 	# This quantization will limit input array in range [0, 1)
@@ -232,7 +230,6 @@ if __name__ == "__main__":
     # assume activation = 0
     
     #l4 = lasagne.layers.InjectionLayer(l3_nl, filename="inputs/test.txt")
-
     lchip = lasagne.layers.InputLayer(shape=(None, num_units), input_var = chip_input)
     l4 = lasagne.layers.ElemwiseMergeLayer([l3_nl, lchip], T.sub)
     #pdb.set_trace()
@@ -262,7 +259,7 @@ if __name__ == "__main__":
     
     mlp = binary_net.DenseLayer(
                 #mlp,
-                l4,
+				l4,
                 binary=binary,
                 stochastic=stochastic,
                 H=H,
@@ -274,8 +271,8 @@ if __name__ == "__main__":
             mlp,
             epsilon=epsilon, 
             alpha=alpha)
-    
-    # When training, use stochastic approach
+    #pdb.set_trace() 
+	#When training, use stochastic approach
     train_output = lasagne.layers.get_output(mlp, deterministic=False)
     
     # squared hinge loss
@@ -320,6 +317,7 @@ if __name__ == "__main__":
     if save_path is not None:
         os.mkdir(save_path)
     inputname = 'inputs/test'
+    #pdb.set_trace()	
     binary_net.train(
             train_fn, get_intermediate_activation, val_fn,
             mlp,

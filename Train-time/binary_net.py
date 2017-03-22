@@ -277,7 +277,7 @@ def train(train_fn, interm_fn, val_fn,
             Out1, Out2, Out3 = interm_fn(X[i*batch_size:(i+1)*batch_size])
             save_name_out3 = "inputs/test.txt"
             np.savetxt(save_name_out3, Out3, delimiter="\n")
-            pdb.set_trace()
+            #pdb.set_trace()
 			# read back in
             # pause to let external file changes..
             ideal_out = Out3			
@@ -301,7 +301,7 @@ def train(train_fn, interm_fn, val_fn,
                 #np.save(save_name_out1, Out1)
             #    np.save(save_name_param, Params_bin)
                 os.chdir("..")
-            loss += train_fn(X[i*batch_size:(i+1)*batch_size], [ideal_out] ,y[i*batch_size:(i+1)*batch_size],LR)
+            loss += train_fn(X[i*batch_size:(i+1)*batch_size], ideal_out ,y[i*batch_size:(i+1)*batch_size],LR)
             #loss += train_fn(X[i*batch_size:(i+1)*batch_size], y[i*batch_size:(i+1)*batch_size],LR)
 
         loss/=batches
@@ -314,10 +314,11 @@ def train(train_fn, interm_fn, val_fn,
         err = 0
         loss = 0
         batches = len(X)/batch_size
-        dummy_in = np.zeros(batch_size, 96).astype('float32')
+        #pdb.set_trace()
+        dummy_in = np.zeros([batch_size, 96], dtype='float32')
         for i in range(batches):
             #new_loss, new_err = val_fn(X[i*batch_size:(i+1)*batch_size], y[i*batch_size:(i+1)*batch_size])
-            new_loss, new_err = val_fn(X[i*batch_size:(i+1)*batch_size], [dummy_in], y[i*batch_size:(i+1)*batch_size])			
+            new_loss, new_err = val_fn(X[i*batch_size:(i+1)*batch_size], dummy_in, y[i*batch_size:(i+1)*batch_size])			
             err += new_err
             loss += new_loss
         
