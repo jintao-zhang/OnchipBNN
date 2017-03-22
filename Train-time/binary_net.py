@@ -10,7 +10,7 @@ import sys
 from collections import OrderedDict
 
 import numpy as np
-
+import pdb
 # specifying the gpu to use
 # import theano.sandbox.cuda
 # theano.sandbox.cuda.use('gpu1') 
@@ -221,6 +221,7 @@ def train(train_fn, interm_fn, val_fn,
             batch_size,
             LR_start,LR_decay,
             num_epochs,
+            filename,			
             X_train,y_train,
             X_val,y_val,
             X_test,y_test,
@@ -266,7 +267,7 @@ def train(train_fn, interm_fn, val_fn,
         # return new_X,new_y
     
     # This function trains the model a full epoch (on the whole dataset)
-    def train_epoch(X,y,LR):
+    def train_epoch(X,y,filename,LR):
         
         loss = 0
         batches = len(X)/batch_size
@@ -276,6 +277,7 @@ def train(train_fn, interm_fn, val_fn,
             Out1, Out2, Out3 = interm_fn(X[i*batch_size:(i+1)*batch_size])
             save_name_out3 = "inputs/test.txt"
             np.savetxt(save_name_out3, Out3, delimiter="\n")
+            pdb.set_trace()
 			# read back in
             # pause to let external file changes..
             ideal_out = Out3			
@@ -299,8 +301,8 @@ def train(train_fn, interm_fn, val_fn,
                 #np.save(save_name_out1, Out1)
             #    np.save(save_name_param, Params_bin)
                 os.chdir("..")
-            #loss += train_fn(X[i*batch_size:(i+1)*batch_size], [ideal_out] ,y[i*batch_size:(i+1)*batch_size],LR)
-            loss += train_fn(X[i*batch_size:(i+1)*batch_size] ,y[i*batch_size:(i+1)*batch_size],LR)
+            loss += train_fn(X[i*batch_size:(i+1)*batch_size], [ideal_out] ,y[i*batch_size:(i+1)*batch_size],LR)
+            #loss += train_fn(X[i*batch_size:(i+1)*batch_size], y[i*batch_size:(i+1)*batch_size],LR)
 
         loss/=batches
         
@@ -312,9 +314,10 @@ def train(train_fn, interm_fn, val_fn,
         err = 0
         loss = 0
         batches = len(X)/batch_size
-        
+        dummy_in = np.zeros(batch_size, 96).astype('float32')
         for i in range(batches):
-            new_loss, new_err = val_fn(X[i*batch_size:(i+1)*batch_size], y[i*batch_size:(i+1)*batch_size])
+            #new_loss, new_err = val_fn(X[i*batch_size:(i+1)*batch_size], y[i*batch_size:(i+1)*batch_size])
+            new_loss, new_err = val_fn(X[i*batch_size:(i+1)*batch_size], [dummy_in], y[i*batch_size:(i+1)*batch_size])			
             err += new_err
             loss += new_loss
         
@@ -334,7 +337,7 @@ def train(train_fn, interm_fn, val_fn,
         
         start_time = time.time()
         
-        train_loss = train_epoch(X_train,y_train,LR)
+        train_loss = train_epoch(X_train,y_train,filename,LR)
         X_train,y_train = shuffle(X_train,y_train)
         
         val_err, val_loss = val_epoch(X_val,y_val)

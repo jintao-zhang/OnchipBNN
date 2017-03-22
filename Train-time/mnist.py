@@ -156,10 +156,16 @@ if __name__ == "__main__":
     
     # Prepare Theano variables for inputs and targets
     input = T.tensor4('inputs')
-    chip_input = T.tensor4('chip_inputs')
-    target = T.matrix('targets')
-    LR = T.scalar('LR', dtype=theano.config.floatX)
+    #input.tag.test_value = np.random.randn(3, 1, 10, 10).astype('float32')
+    
+    chip_input = T.matrix('chip_inputs')
+    #chip_input.tag.test_value = np.random.randn(3, 96).astype('float32')
 
+    target = T.matrix('targets')
+    #target.tag.test_value = np.asarray([9, 0, 4]).astype('float32')	
+    
+    LR = T.scalar('LR', dtype=theano.config.floatX)
+    #LR.tag.test_value = 0.001
 	# Jintao: Input Layer dimension change
     #mlp = lasagne.layers.InputLayer(
     #        shape=(None, 1, 10, 10),
@@ -222,7 +228,7 @@ if __name__ == "__main__":
     # assume activation = 0
     
     #l4 = lasagne.layers.InjectionLayer(l3_nl, filename="inputs/test.txt")
-    lchip = lasagne.layers.InputLayer(shape=(None, 1, batch_size, num_units), input_var = chip_input)
+    lchip = lasagne.layers.InputLayer(shape=(None, num_units), input_var = chip_input)
     l4 = lasagne.layers.ElemwiseMergeLayer([l3_nl, lchip], T.sub)
     #pdb.set_trace()
     #for k in range(n_hidden_layers):
@@ -302,18 +308,20 @@ if __name__ == "__main__":
     #Outputs1, Outputs2, Outputs3 = get_intermediate_activation(test_set.X)
 	
     # Compile a second function computing the validation loss and accuracy:
-    val_fn = theano.function([input, target], [test_loss, test_err])
+    #val_fn = theano.function([input, target], [test_loss, test_err])
+    val_fn = theano.function([input, chip_input, target], [test_loss, test_err])
 
     print('Training...')
     if save_path is not None:
         os.mkdir(save_path)
-	
+    inputname = 'inputs/test'
     binary_net.train(
             train_fn, get_intermediate_activation, val_fn,
             mlp,
             batch_size,
             LR_start,LR_decay,
             num_epochs,
+            inputname,
             train_set.X,train_set.y,
             valid_set.X,valid_set.y,
             test_set.X,test_set.y,
