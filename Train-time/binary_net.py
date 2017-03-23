@@ -271,21 +271,24 @@ def train(train_fn, interm_fn, val_fn,
         
         loss = 0
         batches = len(X)/batch_size
-        
+        dummy_in = np.zeros([batch_size, 96], dtype='float32')
         for i in range(batches):
 		# Jintao : inject function
-            Out1, Out2, Out3 = interm_fn(X[i*batch_size:(i+1)*batch_size])
-            save_name_out3 = "inputs/test.txt"
-            np.savetxt(save_name_out3, Out3, delimiter="\n")
+            Out1, Out2, Out3 = interm_fn(X[i*batch_size:(i+1)*batch_size], dummy_in)
+            save_name_out2 = "inputs/test.txt"
+            np.savetxt(save_name_out2, Out2, delimiter="\n")
+            #ideal_out = np.loadtxt(save_name_out2, dtype='float32', )
             #pdb.set_trace()
 			# read back in
             # pause to let external file changes..
-            ideal_out = Out3			
+            ideal_out = np.negative(Out2)
             #ideal_out = np.loadtxt(save_name_out2) WRITEME
 			
 			#Jintao: save the parameter/outputs for EACH batch
             if save_path is not None:
-                Out1, Out2, Out3 = interm_fn(X[i*batch_size:(i+1)*batch_size])
+                Out1, Out2, Out3 = interm_fn(X[i*batch_size:(i+1)*batch_size], ideal_out)
+                # this line (hopefully) confirm that the output of layer 4 are all 0s. 
+                print(Out3.sum())
                 os.chdir(save_path)
                 #save_name_param="batch_%d_param_bin.npy" % i
                 save_name_out1="batch_%d_output_1.npy" % i
@@ -317,7 +320,11 @@ def train(train_fn, interm_fn, val_fn,
         #pdb.set_trace()
         dummy_in = np.zeros([batch_size, 96], dtype='float32')
         for i in range(batches):
+            Out1, Out2, Out3 = interm_fn(X[i*batch_size:(i+1)*batch_size], dummy_in)
+            ideal_out = np.negative(Out2)			
             #new_loss, new_err = val_fn(X[i*batch_size:(i+1)*batch_size], y[i*batch_size:(i+1)*batch_size])
+			# Jintao: at this line: if we use "dummy_in" as 2nd input, then we'll bypass the merge layer, and will see the performance improve. 
+			# but if we use "ideal_out", which is the negate of 3rd layer, we'll get random guess...
             new_loss, new_err = val_fn(X[i*batch_size:(i+1)*batch_size], dummy_in, y[i*batch_size:(i+1)*batch_size])			
             err += new_err
             loss += new_loss

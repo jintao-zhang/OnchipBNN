@@ -73,7 +73,7 @@ if __name__ == "__main__":
     print("n_hidden_layers = "+str(n_hidden_layers))
     
     # Training parameters
-    num_epochs = 2 # was 1000
+    num_epochs = 100 # was 1000
     print("num_epochs = "+str(num_epochs))
     
     # Dropout parameters
@@ -231,7 +231,7 @@ if __name__ == "__main__":
     
     #l4 = lasagne.layers.InjectionLayer(l3_nl, filename="inputs/test.txt")
     lchip = lasagne.layers.InputLayer(shape=(None, num_units), input_var = chip_input)
-    l4 = lasagne.layers.ElemwiseMergeLayer([l3_nl, lchip], T.sub)
+    l4 = lasagne.layers.ElemwiseMergeLayer([l3_nl, lchip], T.add)
     #pdb.set_trace()
     #for k in range(n_hidden_layers):
 
@@ -302,11 +302,11 @@ if __name__ == "__main__":
     # and returning the corresponding training loss:
     #train_fn = theano.function([input, target, LR], loss, updates=updates)
     train_fn = theano.function([input, chip_input, target, LR], loss, updates=updates)
-    Output1 = lasagne.layers.get_output(l1_nl, deterministic=False)
-    Output2 = lasagne.layers.get_output(l2_nl, deterministic=False)
-    Output3 = lasagne.layers.get_output(l3_nl, deterministic=False)
+    Output1 = lasagne.layers.get_output(l2_nl, deterministic=False)
+    Output2 = lasagne.layers.get_output(l3_nl, deterministic=False)
+    Output3 = lasagne.layers.get_output(l4   , deterministic=False)
  
-    get_intermediate_activation = theano.function([input], [Output1, Output2, Output3])
+    get_intermediate_activation = theano.function([input, chip_input], [Output1, Output2, Output3])
     #Outputs1, Outputs2, Outputs3 = get_intermediate_activation(test_set.X)
 	
     # Compile a second function computing the validation loss and accuracy:
