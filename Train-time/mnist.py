@@ -111,8 +111,8 @@ if __name__ == "__main__":
     # BTW, LR decay might good for the BN moving average...
     
     #save_path = "mnist_parameters.npz"
-    save_path = "mnist_"
-    #save_path = None
+    #save_path = "mnist_"
+    save_path = None
     print("save_path = "+str(save_path))
     
     shuffle_parts = 1
@@ -162,7 +162,9 @@ if __name__ == "__main__":
     
     chip_input = T.matrix('chip_inputs')
     #chip_input.tag.test_value = np.random.randn(3, 96).astype('float32')
-
+    
+    chip_nonideal = T.matrix('chip_nonideals')
+	
     target = T.matrix('targets')
     #target.tag.test_value = np.asarray([9, 0, 4]).astype('float32')	
     
@@ -223,7 +225,10 @@ if __name__ == "__main__":
 		epsilon=epsilon,
 		alpha=alpha)
 	
-    l3_nl = lasagne.layers.NonlinearityLayer(l3_bn,
+    lnonideal = lasagne.layers.InputLayer(shape=(None, num_units), input_var = chip_nonideal)	
+    l3_merge = lasagne.layers.ElemwiseMergeLayer([l3_bn, lnonideal], T.add)
+	
+    l3_nl = lasagne.layers.NonlinearityLayer(l3_merge,
 		nonlinearity=activation)
 
     # attempt to add in an additional layer to inject numbers
@@ -289,7 +294,8 @@ if __name__ == "__main__":
         # other parameters updates
         params = lasagne.layers.get_all_params(mlp, trainable=True, binary=False)
         updates = OrderedDict(updates.items() + lasagne.updates.adam(loss_or_grads=loss, params=params, learning_rate=LR).items())
-        
+    
+		
     else:
         params = lasagne.layers.get_all_params(mlp, trainable=True)
         updates = lasagne.updates.adam(loss_or_grads=loss, params=params, learning_rate=LR)
@@ -301,30 +307,44 @@ if __name__ == "__main__":
     # Compile a function performing a training step on a mini-batch (by giving the updates dictionary) 
     # and returning the corresponding training loss:
     #train_fn = theano.function([input, target, LR], loss, updates=updates)
-    train_fn = theano.function([input, chip_input, target, LR], loss, updates=updates)
-    Output1 = lasagne.layers.get_output(l2_nl, deterministic=False)
+    train_fn = theano.function([input, chip_input, chip_nonideal, target, LR], loss, updates=updates)
+    Output1 = lasagne.layers.get_output(l3_bn, deterministic=False)
     Output2 = lasagne.layers.get_output(l3_nl, deterministic=False)
     Output3 = lasagne.layers.get_output(l4   , deterministic=False)
  
-    get_intermediate_activation = theano.function([input, chip_input], [Output1, Output2, Output3])
+    get_intermediate_activation = theano.function([input, chip_input, chip_nonideal], [Output1, Output2, Output3])
     #Outputs1, Outputs2, Outputs3 = get_intermediate_activation(test_set.X)
+    #pdb.set_trace()
+    #get_Wb = lasagne.layers.get_
+    #Grad1 = T.grad(loss, wrt=Output1)
+    #Grad2 = T.grad(loss, Output2)
+    #Grad3 = T.grad(loss, wrt=Output3)
+    #get_gradient = theano.function([input, chip_input], [Grad2])
 	
     # Compile a second function computing the validation loss and accuracy:
     #val_fn = theano.function([input, target], [test_loss, test_err])
-    val_fn = theano.function([input, chip_input, target], [test_loss, test_err])
+    val_fn = theano.function([input, chip_input, chip_nonideal, target], [test_loss, test_err])
 
     print('Training...')
     if save_path is not None:
         os.mkdir(save_path)
     inputname = 'inputs/test'
+	# emulate chip nonideality
+    np.random.seed(1234)
+    chip_nonideal_rng = np.random.ranf((1, num_units)).astype('float32')
+    chip_nonideal_rng = chip_nonideal_rng * 10.0 - 5.0
+    chip_nonideal_rng = np.repeat(chip_nonideal_rng, batch_size, axis=0)
+	
     #pdb.set_trace()	
     binary_net.train(
-            train_fn, get_intermediate_activation, val_fn,
+            train_fn, get_intermediate_activation, #get_gradient,
+            val_fn,
             mlp,
             batch_size,
             LR_start,LR_decay,
             num_epochs,
             inputname,
+            chip_nonideal_rng,			
             train_set.X,train_set.y,
             valid_set.X,valid_set.y,
             test_set.X,test_set.y,

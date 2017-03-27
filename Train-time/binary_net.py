@@ -216,12 +216,14 @@ def clipping_scaling(updates,network):
         
 # Given a dataset and a model, this function trains the model on the dataset for several epochs
 # (There is no default trainer function in Lasagne yet)
-def train(train_fn, interm_fn, val_fn,
+def train(train_fn, interm_fn, #grad_fn, 
+            val_fn,
             model,
             batch_size,
             LR_start,LR_decay,
             num_epochs,
-            filename,			
+            filename,
+            chip_rng,			
             X_train,y_train,
             X_val,y_val,
             X_test,y_test,
@@ -272,23 +274,29 @@ def train(train_fn, interm_fn, val_fn,
         loss = 0
         batches = len(X)/batch_size
         dummy_in = np.zeros([batch_size, 96], dtype='float32')
+        chip_nonideal_val = dummy_in
+        chip_input = dummy_in		
         for i in range(batches):
 		# Jintao : inject function
-            Out1, Out2, Out3 = interm_fn(X[i*batch_size:(i+1)*batch_size], dummy_in)
-            save_name_out2 = "inputs/test.txt"
-            np.savetxt(save_name_out2, Out2, delimiter="\n")
-            #ideal_out = np.loadtxt(save_name_out2, dtype='float32', )
+            Out1, Out2, Out3 = interm_fn(X[i*batch_size:(i+1)*batch_size], chip_input, chip_nonideal_val)
+            if i == 0:
+                SNR = np.absolute(Out1).sum() / np.absolute(chip_rng).sum()
+                SNR = SNR * SNR
+                print ('SNR = ' + str(SNR))
+            #save_name_out2 = "inputs/test.txt"
+            #np.savetxt(filename, Out2, delimiter="\n")
+            # NEED SOME PAUSE FUNCTION HERE
+            #ideal_out = np.loadtxt(filename, dtype='float32').reshape(batch_size, 96)
             #pdb.set_trace()
-			# read back in
-            # pause to let external file changes..
-            ideal_out = np.negative(Out2)
+            #ideal_out = np.negative(ideal_out)
+            chip_nonideal_val = chip_rng			
             #ideal_out = np.loadtxt(save_name_out2) WRITEME
 			
 			#Jintao: save the parameter/outputs for EACH batch
             if save_path is not None:
-                Out1, Out2, Out3 = interm_fn(X[i*batch_size:(i+1)*batch_size], ideal_out)
+                Out1, Out2, Out3 = interm_fn(X[i*batch_size:(i+1)*batch_size], chip_input, chip_nonideal_val)
                 # this line (hopefully) confirm that the output of layer 4 are all 0s. 
-                print(Out3.sum())
+                #print(Out3.sum())
                 os.chdir(save_path)
                 #save_name_param="batch_%d_param_bin.npy" % i
                 save_name_out1="batch_%d_output_1.npy" % i
@@ -304,7 +312,7 @@ def train(train_fn, interm_fn, val_fn,
                 #np.save(save_name_out1, Out1)
             #    np.save(save_name_param, Params_bin)
                 os.chdir("..")
-            loss += train_fn(X[i*batch_size:(i+1)*batch_size], ideal_out ,y[i*batch_size:(i+1)*batch_size],LR)
+            loss += train_fn(X[i*batch_size:(i+1)*batch_size], chip_input,chip_nonideal_val,y[i*batch_size:(i+1)*batch_size],LR)
             #loss += train_fn(X[i*batch_size:(i+1)*batch_size], y[i*batch_size:(i+1)*batch_size],LR)
 
         loss/=batches
@@ -319,13 +327,15 @@ def train(train_fn, interm_fn, val_fn,
         batches = len(X)/batch_size
         #pdb.set_trace()
         dummy_in = np.zeros([batch_size, 96], dtype='float32')
+        chip_nonideal_val = chip_rng # test with chip_rng
+        chip_input = dummy_in			
         for i in range(batches):
-            Out1, Out2, Out3 = interm_fn(X[i*batch_size:(i+1)*batch_size], dummy_in)
-            ideal_out = np.negative(Out2)			
+            Out1, Out2, Out3 = interm_fn(X[i*batch_size:(i+1)*batch_size], chip_input, chip_nonideal_val)
+            #ideal_out = np.negative(Out2)			
             #new_loss, new_err = val_fn(X[i*batch_size:(i+1)*batch_size], y[i*batch_size:(i+1)*batch_size])
 			# Jintao: at this line: if we use "dummy_in" as 2nd input, then we'll bypass the merge layer, and will see the performance improve. 
 			# but if we use "ideal_out", which is the negate of 3rd layer, we'll get random guess...
-            new_loss, new_err = val_fn(X[i*batch_size:(i+1)*batch_size], dummy_in, y[i*batch_size:(i+1)*batch_size])			
+            new_loss, new_err = val_fn(X[i*batch_size:(i+1)*batch_size], chip_input, chip_nonideal_val, y[i*batch_size:(i+1)*batch_size])			
             err += new_err
             loss += new_loss
         
@@ -368,7 +378,7 @@ def train(train_fn, interm_fn, val_fn,
             print(save_name_params_other)
             #save_name_outputs="epoch_%d_out.npy" % epoch
             Params_bin = lasagne.layers.get_all_params(model, binary=True)
-            Params_oth = lasagne.layers.get_all_params(model, trainable=True, binary=False)
+            Params_oth = lasagne.layers.get_all_params(model, binary=False)
             np.save(save_name_params_binary, Params_bin)
             np.save(save_name_params_other , Params_oth)
 
