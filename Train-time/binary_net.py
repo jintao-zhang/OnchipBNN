@@ -279,9 +279,9 @@ def train(train_fn, interm_fn, #grad_fn,
         for i in range(batches):
 		# Jintao : inject function
             Out1, Out2, Out3 = interm_fn(X[i*batch_size:(i+1)*batch_size], chip_input, chip_nonideal_val)
+            ratio = (np.absolute(Out1).sum() / np.absolute(chip_rng).sum()) * 3.0
             if i == 0:
-                SNR = np.absolute(Out1).sum() / np.absolute(chip_rng).sum()
-                SNR = SNR * SNR
+                SNR = np.square(Out1).sum() / np.square(chip_rng*ratio).sum()
                 print ('SNR = ' + str(SNR))
             #save_name_out2 = "inputs/test.txt"
             #np.savetxt(filename, Out2, delimiter="\n")
@@ -289,7 +289,7 @@ def train(train_fn, interm_fn, #grad_fn,
             #ideal_out = np.loadtxt(filename, dtype='float32').reshape(batch_size, 96)
             #pdb.set_trace()
             #ideal_out = np.negative(ideal_out)
-            chip_nonideal_val = chip_rng			
+            chip_nonideal_val = chip_rng * ratio	
             #ideal_out = np.loadtxt(save_name_out2) WRITEME
 			
 			#Jintao: save the parameter/outputs for EACH batch
@@ -331,6 +331,8 @@ def train(train_fn, interm_fn, #grad_fn,
         chip_input = dummy_in			
         for i in range(batches):
             Out1, Out2, Out3 = interm_fn(X[i*batch_size:(i+1)*batch_size], chip_input, chip_nonideal_val)
+            ratio = (np.absolute(Out1).sum() / np.absolute(chip_rng).sum()) * 3.0
+            chip_nonideal_val = chip_rng * ratio # test with chip_rng	
             #ideal_out = np.negative(Out2)			
             #new_loss, new_err = val_fn(X[i*batch_size:(i+1)*batch_size], y[i*batch_size:(i+1)*batch_size])
 			# Jintao: at this line: if we use "dummy_in" as 2nd input, then we'll bypass the merge layer, and will see the performance improve. 

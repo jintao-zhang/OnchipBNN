@@ -332,7 +332,7 @@ if __name__ == "__main__":
 	# emulate chip nonideality
     np.random.seed(1234)
     chip_nonideal_rng = np.random.ranf((1, num_units)).astype('float32')
-    chip_nonideal_rng = chip_nonideal_rng * 10.0 - 5.0
+    chip_nonideal_rng = chip_nonideal_rng * 1.0 - 0.5
     chip_nonideal_rng = np.repeat(chip_nonideal_rng, batch_size, axis=0)
 	
     #pdb.set_trace()	
